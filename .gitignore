@@ -1,9 +1,52 @@
+# Python
 config.py
+secrets.py
+credentials.py
+*.pyc
+__pycache__/
 .env
+.env.*
+*.env
+
+# Keys and credentials
 *.key
 *.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+*.csr
+id_rsa
+id_ed25519
+*.pub
+
+# Secret files
+.secrets/
+keys.env
+secrets.json
+credentials.json
+token.json
+*.token
+
+# Logs
+*.log
+*.log.*
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# MicroPython/VSCode
 .micropico
 .vscode/
-__pycache__/
-*.pyc
-.DS_Store
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Temporary
+*.tmp
+*.temp
+*.swp
