@@ -9,7 +9,7 @@
 # HDC3022: raw I2C driver
 
 import time
-from machine import Pin, I2C
+from machine import Pin, I2C # type: ignore
 from micropython_bmpxxx import bmpxxx
 
 # I2C bus - shared by both sensors

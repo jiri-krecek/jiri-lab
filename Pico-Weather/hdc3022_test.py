@@ -1,4 +1,4 @@
-import machine
+import machine # type: ignore
 import time
 
 # I2C setup - same bus as BMP390

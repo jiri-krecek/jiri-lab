@@ -2,6 +2,7 @@
 config.py
 secrets.py
 credentials.py
+pyrightconfig.json
 *.pyc
 __pycache__/
 .env
