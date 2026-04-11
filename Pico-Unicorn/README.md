@@ -32,4 +32,5 @@ RP2350 is Pico2 repo!
 ## Notes
 - Time synced via NTP on boot
 - DST handled automatically for US timezones (except Arizona)
+- NTP server resync set to hourly to keep the time accurate, if Pico never reboots
 - Timezone hardcoded for US Central — adjust offset in local_hour() for other zones
