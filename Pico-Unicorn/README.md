@@ -14,7 +14,12 @@ rpi_pico2_w-v1.26.1-micropython.uf2
 https://github.com/pimoroni/pimoroni-pico-rp2350/releases
 
 Do NOT use standard MicroPython — the picounicorn library 
-will not be available.
+will not be available on that firmware - use the link above 
+nd find the latest release available for Pico 2W, or wahtever 
+model you are running - the name will be similar to mine above.
+NOTE: Pico 2st gen has a completely seprate Git repo than Pico 2!
+RP2350 is Pico2 repo!
+
 
 ## Setup
 1. Flash the Pimoroni firmware above
@@ -27,4 +32,5 @@ will not be available.
 ## Notes
 - Time synced via NTP on boot
 - DST handled automatically for US timezones (except Arizona)
+- NTP server resync set to hourly to keep the time accurate, if Pico never reboots
 - Timezone hardcoded for US Central — adjust offset in local_hour() for other zones
