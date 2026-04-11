@@ -1,15 +1,18 @@
-# Weather Station - Pico 2W
+# Weather Station - Pico 2W - UART Sender
+# This code is only made to prove that sensor data from one pico
+# can be sent to another pico via UART
+# Weather Pico = PIco 2W + BMP390 + HDC3022 sensors
+# Decker Pico = Pico 2W + Pimoroni Decker + Pimoroni Pico Display
+# 
+# Pinout:
+# Weather Pico GP4 TX >> Decker Pico GP5 RX
+# Weather Pico GP5 RX << Decker Pico GP4 TX
+#
 # Sensors: BMP390 (pressure, altitude), HDC3022 (temperature, humidity)
-# BMP390 contains temp sensor, but HDC3022 temp sensor used instead due to higher accuracy
-#
-# BMP390 driver: micropython_bmpxxx library
-# Author: Brad Carlile (bradcar)
-# GitHub: https://github.com/bradcar/MicroPython_BMPxxx
-#
-# HDC3022: raw I2C driver
+# Sends data to Decker Pico via UART1 on GP4 (TX) / GP5 (RX)
 
 import time
-from machine import Pin, I2C # type: ignore
+from machine import Pin, I2C, UART # type: ignore
 from micropython_bmpxxx import bmpxxx
 
 # I2C bus - shared by both sensors
@@ -20,19 +23,12 @@ if i2c1_devices:
     for d in i2c1_devices: print(f"i2c1 device at address: {hex(d)}")
 else:
     print("ERROR: No i2c1 devices")
-print("")
 
 # --- BMP390 setup ---
 bmp = bmpxxx.BMP390(i2c=i2c, address=0x77)
-
-sea_level_pressure = bmp.sea_level_pressure
-print(f"Initial sea_level_pressure = {sea_level_pressure:.2f} hPa")
-
 bmp.sea_level_pressure = 1017.0
-print(f"Adjusted sea level pressure = {bmp.sea_level_pressure:.2f} hPa")
-
 bmp.altitude = 210.0
-print(f"Adjusted SLP using {bmp.altitude:.2f} meter altitude = {bmp.sea_level_pressure:.2f} hPa\n")
+time.sleep(1)
 
 # --- HDC3022 setup ---
 HDC3022_ADDR = 0x44
@@ -48,21 +44,17 @@ def read_hdc3022():
     humidity = 100 * (hum_raw / 65535)
     return temp_c, temp_f, humidity
 
+# --- UART setup ---
+uart = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+
 # --- Main loop ---
 while True:
-    # BMP390 readings
-    print(f"Station Pressure = {bmp.pressure:.2f} hPa")
-    print(f"Sea Level Pressure = {bmp.sea_level_pressure:.2f} hPa")
-    meters = bmp.altitude
-    feet = meters * 3.28084
-    feet_only = int(feet)
-    inches = int((feet - feet_only) * 12)
-    print(f"Altitude = {meters:.2f} m / {feet_only} feet {inches} inches")
-
-    # HDC3022 readings
+    pressure = bmp.sea_level_pressure
     temp_c, temp_f, humidity = read_hdc3022()
-    print(f"Temp = {temp_c:.2f} C / {temp_f:.2f} F")
-    print(f"Humidity = {humidity:.2f} %")
-    print("---")
+
+    # format as simple CSV string
+    msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.0f}\n"
+    uart.write(msg)
+    print(f"Sent: {msg.strip()}")
 
     time.sleep(10)

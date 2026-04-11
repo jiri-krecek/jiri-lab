@@ -14,18 +14,18 @@ display.clear()
 
 display.set_pen(RED)
 display.text("Temp:", 10, 10, 240, 3)
-display.text("75 F", 110, 10, 240, 3)
+display.text("75 F", 105, 10, 240, 3)
 
 display.set_pen(AMBER)
 display.text("RH:", 10, 41, 240, 3)
-display.text("65%",110, 41, 240, 3)
+display.text("65%",105, 41, 240, 3)
 
 display.set_pen(GREEN)
-display.text("Press: 1026 hPa", 10, 72, 240, 3)
-display.text("1026 hPa", 110, 72, 240, 3)
+display.text("Press:", 10, 72, 240, 3)
+display.text("1026 hPa", 105, 72, 240, 3)
 
 display.set_pen(BLUE)
 display.text("UV:", 10, 103, 240, 3)
-display.text("2", 110, 103, 240, 3)
+display.text("2", 105, 103, 240, 3)
 
 display.update()
