@@ -96,6 +96,9 @@ while True:
     m1 = '{:02d}'.format(minute)[0]
     m2 = '{:02d}'.format(minute)[1]
 
+    # color and brightness controlled by 3rd, 4th and 5th value
+    # in this case R=10, G=50, B=50 for low brightness solution
+    # if you want full brightness, set to 50, 255, 255 or whatever color
     clear()
     draw_char(h1, 0, 10, 50, 50)
     draw_char(h2, 4, 10, 50, 50)
