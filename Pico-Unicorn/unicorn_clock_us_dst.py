@@ -76,7 +76,17 @@ def clear():
 # H1 at 0, H2 at 4, M1 at 9, M2 at 13
 # that's 3+1+3+2+3+1+3 = 16 exactly
 
+last_sync = time.time()
+
 while True:
+    # Resync NTP every hour
+    if time.time() - last_sync > 3600:
+        try:
+            ntptime.settime()
+            last_sync = time.time()
+        except:
+            pass  # if sync fails, keep running with last known time
+    
     now = time.localtime()
     hour = local_hour(now[3], now[0], now[1], now[2], now[6])
     minute = now[4]
