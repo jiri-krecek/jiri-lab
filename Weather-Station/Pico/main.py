@@ -114,7 +114,7 @@ while True:
         wind_sustained = sum(valid_speeds) / len(valid_speeds) if valid_speeds else 0.0
         wind_gust = max(valid_speeds) if valid_speeds else 0.0
 
-        msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.0f},{uv:.2f},{wind_sustained:.1f},{wind_gust:.1f},{wind_dir},{rainfall:.3f}"
+        msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.2f},{uv:.2f},{wind_sustained:.1f},{wind_gust:.1f},{wind_dir},{rainfall:.3f}"
         print(msg)
 
         sample_count = 0
