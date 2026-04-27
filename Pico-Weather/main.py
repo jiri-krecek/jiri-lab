@@ -2,7 +2,7 @@
 # Sensors: BMP390 (pressure), HDC3022 (temp, humidity), Wind Vane, Anemometer, Rain Gauge
 
 import time
-from machine import Pin, I2C, ADC
+from machine import Pin, I2C, ADC # type: ignore
 from micropython_bmpxxx import bmpxxx
 from compass import voltage_to_direction, get_wind_direction
 
