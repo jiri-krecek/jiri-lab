@@ -1,5 +1,9 @@
 # Weather Station - Pico 2W
 # Sensors: BMP390 (pressure), HDC3022 (temp, humidity), Wind Vane, Anemometer, Rain Gauge
+# Barometric Pressure: 
+# Pressure validated against known source: DuPage Airport's (KDPA) current METAR:
+# https://aviationweather.gov/api/data/metar?ids=KDPA&format=raw
+# You may need to replace the airport code for a known manned airport nearby with comparable elevation
 
 import time
 from machine import Pin, I2C, ADC # type: ignore
