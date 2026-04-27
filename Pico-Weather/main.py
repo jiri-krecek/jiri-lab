@@ -1,21 +1,12 @@
-# Weather Station - Pico 2W - UART Sender
-# This code is only made to prove that sensor data from one pico
-# can be sent to another pico via UART
-# Weather Pico = PIco 2W + BMP390 + HDC3022 sensors
-# Decker Pico = Pico 2W + Pimoroni Decker + Pimoroni Pico Display
-# 
-# Pinout:
-# Weather Pico GP4 TX >> Decker Pico GP5 RX
-# Weather Pico GP5 RX << Decker Pico GP4 TX
-#
-# Sensors: BMP390 (pressure, altitude), HDC3022 (temperature, humidity)
-# Sends data to Decker Pico via UART1 on GP4 (TX) / GP5 (RX)
+# Weather Station - Pico 2W
+# Sensors: BMP390 (pressure), HDC3022 (temp, humidity), Wind Vane, Anemometer, Rain Gauge
 
 import time
-from machine import Pin, I2C, UART # type: ignore
+from machine import Pin, I2C, ADC
 from micropython_bmpxxx import bmpxxx
+from compass import voltage_to_direction, get_wind_direction
 
-# I2C bus - shared by both sensors
+# I2C bus - shared by all sensors
 i2c = I2C(0, sda=Pin(0), scl=Pin(1))
 
 i2c1_devices = i2c.scan()
@@ -44,17 +35,88 @@ def read_hdc3022():
     humidity = 100 * (hum_raw / 65535)
     return temp_c, temp_f, humidity
 
-# --- UART setup ---
-uart = UART(1, baudrate=9600, tx=Pin(4), rx=Pin(5))
+# --- Wind Vane setup (GP26, ADC) ---
+vane_adc = ADC(Pin(26))
 
-# --- Main loop ---
+def read_vane_voltage():
+    raw = vane_adc.read_u16()
+    return raw * 3.3 / 65535
+
+# --- Anemometer setup (GP4, pulse counter) ---
+ANE_PIN = Pin(4, Pin.IN, Pin.PULL_UP)
+pulse_count = 0
+
+def count_pulse(pin):
+    global pulse_count
+    pulse_count += 1
+
+ANE_PIN.irq(trigger=Pin.IRQ_RISING, handler=count_pulse)
+
+def read_wind_speed():
+    global pulse_count
+    count = pulse_count
+    pulse_count = 0
+    return (count / 5) * 1.492
+
+# --- Rain Gauge setup (GP3, pulse counter) ---
+RAIN_PIN = Pin(3, Pin.IN, Pin.PULL_UP)
+rain_count = 0
+last_rain_time = 0
+
+def rain_pulse(pin):
+    global rain_count, last_rain_time
+    now = time.ticks_ms()
+    if time.ticks_diff(now, last_rain_time) > 1990:
+        rain_count += 1
+        last_rain_time = now
+
+RAIN_PIN.irq(trigger=Pin.IRQ_FALLING, handler=rain_pulse)
+
+def read_rain():
+    global rain_count
+    count = rain_count
+    rain_count = 0
+    # SparkFun SEN-15901: each tip = 0.011 inches of rain
+    return count * 0.011
+
+# --- Sampling config ---
+SAMPLE_INTERVAL = 5     # seconds between samples
+SAMPLE_COUNT = 24       # samples per report (24 x 5s = 120s = 2 minutes)
+
+vane_readings = []
+speed_readings = []
+sample_count = 0
+
 while True:
-    pressure = bmp.sea_level_pressure
-    temp_c, temp_f, humidity = read_hdc3022()
+    voltage = read_vane_voltage()
+    direction = voltage_to_direction(voltage)
+    mph = read_wind_speed()
 
-    # format as simple CSV string
-    msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.0f}\n"
-    uart.write(msg)
-    print(f"Sent: {msg.strip()}")
+    vane_readings.append(direction)
+    speed_readings.append(mph)
 
-    time.sleep(10)
+    if len(vane_readings) > SAMPLE_COUNT:
+        vane_readings.pop(0)
+    if len(speed_readings) > SAMPLE_COUNT:
+        speed_readings.pop(0)
+
+    sample_count += 1
+
+    if sample_count >= SAMPLE_COUNT:
+        pressure = bmp.sea_level_pressure
+        temp_c, temp_f, humidity = read_hdc3022()
+        uv = 0.0
+        rainfall = read_rain()
+
+        wind_dir = get_wind_direction(vane_readings)
+
+        valid_speeds = [s for s in speed_readings if s is not None]
+        wind_sustained = sum(valid_speeds) / len(valid_speeds) if valid_speeds else 0.0
+        wind_gust = max(valid_speeds) if valid_speeds else 0.0
+
+        msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.0f},{uv:.2f},{wind_sustained:.1f},{wind_gust:.1f},{wind_dir},{rainfall:.3f}"
+        print(msg)
+
+        sample_count = 0
+
+    time.sleep(SAMPLE_INTERVAL)
