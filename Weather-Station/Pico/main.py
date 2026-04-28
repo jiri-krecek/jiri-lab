@@ -20,9 +20,17 @@ else:
     print("ERROR: No i2c1 devices")
 
 # --- BMP390 setup ---
+# Jiri Krecek (ARcher Dynamics)
+# Sensor calibration offset: this BMP390 unit reads high vs KORD/KDPA reference by ~0.5 hPa.
+# Determined by comparing refined SLP against KORD/KDPA METAR in stable weather conditions.
+# Offset = sensor refined SLP - current KORD SLP (1003.03 - 1002.50 = 0.53, rounded to 0.5 hPa)
+# Set current sea level pressure from nearest airport METAR (KORD or KDPA are near my location)
+# Update this value at startup using current METAR SLP reading in hPa
+# Convert inHg to hPa if needed: multiply inHg value by 33.8639
 bmp = bmpxxx.BMP390(i2c=i2c, address=0x77)
-bmp.sea_level_pressure = 1017.0
+bmp.sea_level_pressure = 1002.5
 bmp.altitude = 210.0
+PRESSURE_OFFSET_HPA = 0.0
 time.sleep(1)
 
 # --- HDC3022 setup ---
@@ -107,7 +115,7 @@ while True:
     sample_count += 1
 
     if sample_count >= SAMPLE_COUNT:
-        pressure = bmp.sea_level_pressure
+        pressure = bmp.pressure - PRESSURE_OFFSET_HPA
         temp_c, temp_f, humidity = read_hdc3022()
         uv = 0.0
         rainfall = read_rain()
