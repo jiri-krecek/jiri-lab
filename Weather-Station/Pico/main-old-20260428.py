@@ -1,8 +1,8 @@
 # Weather Station - Pico 2W
 # Sensors: BMP390 (pressure), HDC3022 (temp, humidity), Wind Vane, Anemometer, Rain Gauge
-# Barometric Pressure:
-# Pressure validated against known source: Chicago O'Hare (KORD) current METAR:
-# https://aviationweather.gov/api/data/metar?ids=KORD&format=raw
+# Barometric Pressure: 
+# Pressure validated against known source: DuPage Airport's (KDPA) current METAR:
+# https://aviationweather.gov/api/data/metar?ids=KDPA&format=raw
 # You may need to replace the airport code for a known manned airport nearby with comparable elevation
 
 import time
@@ -20,13 +20,13 @@ else:
     print("ERROR: No i2c1 devices")
 
 # --- BMP390 setup ---
-# Jiri Krecek (Archer Dynamics)
-# SLP is calculated live each reading using the hypsometric formula.
-# No hardcoded sea_level_pressure or altitude setter - those freeze the value.
-# PRESSURE_OFFSET_HPA: this BMP390 unit reads high vs KORD by 1.3 hPa.
-# Validated 2026-04-28 against KORD METAR SLP in stable weather.
-# To recalibrate: run testbmp390.py, compare SLP output to current KORD METAR SLP,
-# set offset = sensor SLP - KORD SLP.
+# Jiri Krecek (ARcher Dynamics)
+# Sensor calibration offset: this BMP390 unit reads high vs KORD/KDPA reference by ~0.5 hPa.
+# Determined by comparing refined SLP against KORD/KDPA METAR in stable weather conditions.
+# Offset = sensor refined SLP - current KORD SLP (1003.03 - 1002.50 = 0.53, rounded to 0.5 hPa)
+# Set current sea level pressure from nearest airport METAR (KORD or KDPA are near my location)
+# Update this value at startup using current METAR SLP reading in hPa
+# Convert inHg to hPa if needed: multiply inHg value by 33.8639
 bmp = bmpxxx.BMP390(i2c=i2c, address=0x77)
 ELEVATION_M = 210.0
 PRESSURE_OFFSET_HPA = 1.3
@@ -114,8 +114,7 @@ while True:
     sample_count += 1
 
     if sample_count >= SAMPLE_COUNT:
-        station_pressure = bmp.pressure
-        slp = (station_pressure / (1.0 - ELEVATION_M / 44330.77) ** (1 / 0.1902632)) - PRESSURE_OFFSET_HPA
+        pressure = (bmp.pressure / (1.0 - ELEVATION_M / 44330.77) ** (1 / 0.1902632)) - PRESSURE_OFFSET_HPA
         temp_c, temp_f, humidity = read_hdc3022()
         uv = 0.0
         rainfall = read_rain()
@@ -126,7 +125,7 @@ while True:
         wind_sustained = sum(valid_speeds) / len(valid_speeds) if valid_speeds else 0.0
         wind_gust = max(valid_speeds) if valid_speeds else 0.0
 
-        msg = f"{temp_f:.1f},{humidity:.1f},{slp:.2f},{uv:.2f},{wind_sustained:.1f},{wind_gust:.1f},{wind_dir},{rainfall:.3f}"
+        msg = f"{temp_f:.1f},{humidity:.1f},{pressure:.2f},{uv:.2f},{wind_sustained:.1f},{wind_gust:.1f},{wind_dir},{rainfall:.3f}"
         print(msg)
 
         sample_count = 0

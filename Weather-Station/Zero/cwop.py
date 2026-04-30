@@ -10,6 +10,10 @@ import time
 from datetime import datetime, timezone
 from config import STATION_ID, LAT, LON, PASSCODE, DRY_RUN
 
+# --- Journal file path ---
+
+JOURNAL_FILE = "/mnt/data/weather/journal.csv"
+
 # --- APRS packet formatting ---
 
 def format_lat(lat):
@@ -49,6 +53,9 @@ def build_aprs_packet(temp_f, humidity, pressure, wind_dir, wind_sustained, wind
 
 def find_pico():
     while True:
+        # Pico will appear in Linux as /dev/ttyACM0, but if disconnected and reconnected while Linux remains booted,
+        # the reconnected Pico will appear as /dev/ttyACM1. So, do NOT hardcode it's device name
+        # If Linux reboots, Pico's device name reverts back to ttyACM0
         ports = serial.tools.list_ports.comports()
         for port in ports:
             if 'ACM' in port.device:
@@ -65,23 +72,35 @@ def submit_aprs(packet):
         return True
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(10)
+        s.settimeout(20)
         s.connect(("cwop.aprs.net", 14580))
         s.recv(1024)  # read server greeting
         # Login
         login = f"user {STATION_ID} pass {PASSCODE} vers PiWeather 1.0\r\n"
         s.sendall(login.encode())
-        time.sleep(3)
+        time.sleep(2) # Findu instructions ask for a 2-second pause after login and before login acknowledgement
         s.recv(1024)  # read login acknowledgement
         # Send packet
         s.sendall((packet + "\r\n").encode())
-        time.sleep(3)
+        time.sleep(2) # Findu instructions ask for a 2-second pause after sending and before disconencting
         s.close()
         print(f"Submitted: {packet}")
         return True
     except Exception as e:
         print(f"APRS submit failed: {e}")
+        write_journal("ERROR", f"APRS submit failed: {e}")
         return False
+
+# --- Journal Logging ---
+
+def write_journal(event_type, data_str):
+    timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    line = f"{timestamp},{event_type},{data_str}\n"
+    try:
+        with open(JOURNAL_FILE, "a") as f:
+            f.write(line)
+    except Exception as e:
+        print(f"Journal write failed: {e}")
 
 # --- Main loop ---
 
@@ -93,7 +112,7 @@ def parse_line(line):
         temp_f = float(parts[0])
         humidity = float(parts[1])
         pressure = float(parts[2])
-        # parts[3] is uv, skip
+        # parts[3] is uv index LTR 390 sensor -- not yet installed, skipping for now
         wind_sustained = float(parts[4])
         wind_gust = float(parts[5])
         wind_dir = parts[6]
@@ -123,12 +142,16 @@ def main():
         try:
             line = ser.readline().decode("utf-8").strip()
 
+            # Reject lines that are blank or malformed 
             if not line or "," not in line:
                 continue
 
+            # Reject lines that don't match expected field structure
             parsed = parse_line(line)
             if parsed is None:
                 continue
+            
+            write_journal("RAW", line.strip())      # Write 2-minute raw Pico data into CSV Journal for Grafana weather dashboard
 
             temp_f, humidity, pressure, wind_sustained, wind_gust, wind_dir, rainfall = parsed
 
@@ -150,6 +173,7 @@ def main():
             rain_1h_bucket = [(t, r) for t, r in rain_1h_bucket if now - t <= 3600]
             rain_24h_bucket = [(t, r) for t, r in rain_24h_bucket if now - t <= 86400]
 
+            # Sum remaining buckets for totals
             rain_1h = sum(r for _, r in rain_1h_bucket)
             rain_24h = sum(r for _, r in rain_24h_bucket)
 
@@ -161,6 +185,7 @@ def main():
                     rain_1h, rain_24h, rain_midnight
                 )
                 submit_aprs(packet)
+                write_journal("SUBMITTED", packet)
                 last_submit = now
 
         except serial.SerialException:
