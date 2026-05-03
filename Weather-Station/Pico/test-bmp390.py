@@ -10,7 +10,6 @@ if i2c1_devices:
 else:
     print("ERROR: No i2c1 devices")
 print("")
-
 bmp = bmpxxx.BMP390(i2c=i2c, address=0x77)
 
 # Calibration constants
@@ -22,6 +21,8 @@ try:
         station_pressure = bmp.pressure
         temp = bmp.temperature
         slp = (station_pressure / (1.0 - ELEVATION_M / 44330.77) ** (1 / 0.1902632)) - PRESSURE_OFFSET_HPA
+        temp_f = (temp * 9/5) + 32
+        print(f"Station: {station_pressure:.2f} hPa  |  SLP: {slp:.2f} hPa  |  Temp: {temp_f:.2f} F")
         print(f"Station: {station_pressure:.2f} hPa  |  SLP: {slp:.2f} hPa  |  Temp: {temp:.2f} C")
         time.sleep(5)
 
