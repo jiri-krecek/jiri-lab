@@ -71,14 +71,14 @@ def submit_aprs(packet):
         s.connect(("cwop.aprs.net", 14580))
 
         greeting = s.recv(1024).decode("utf-8", errors="replace").strip()
-        write_journal("SERVER_GREETING", greeting)
+        write_journal("APRS_GTNG", greeting)
 
         login = f"user {STATION_ID} pass {PASSCODE} vers PiWeather 1.0\r\n"
         s.sendall(login.encode())
         time.sleep(2)
 
         login_ack = s.recv(1024).decode("utf-8", errors="replace").strip()
-        write_journal("SERVER_ACK", login_ack)
+        write_journal("APRS_ACK", login_ack)
 
         s.sendall((packet + "\r\n").encode())
         time.sleep(2)
@@ -91,7 +91,7 @@ def submit_aprs(packet):
     except Exception as e:
         utc_now = datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
         print(f"[{utc_now}] APRS submit failed: {e}")
-        write_journal("ERROR", f"APRS submit failed: {e}")
+        write_journal("APRS_ERR", f"APRS submit failed: {e}")
         return False
 
 # --- Journal Logging ---
@@ -151,7 +151,7 @@ def main():
             if parsed is None:
                 continue
 
-            write_journal("RAW", line.strip())
+            write_journal("PICO_RAW", line.strip())
 
             temp_f, humidity, pressure, wind_sustained, wind_gust, wind_dir, rainfall = parsed
 
@@ -180,8 +180,8 @@ def main():
                     rain_1h, rain_24h, rain_midnight
                 )
                 submit_aprs(packet)
-                write_journal("SUBMITTED", packet)
-                write_journal("RAIN", f"rain_1h={rain_1h:.4f},rain_24h={rain_24h:.4f},rain_midnight={rain_midnight:.4f}")
+                write_journal("APRS_SUB", packet)
+                write_journal("PICO_RAIN", f"rain_1h={rain_1h:.4f},rain_24h={rain_24h:.4f},rain_midnight={rain_midnight:.4f}")
                 last_submit = now
 
         except serial.SerialException:
