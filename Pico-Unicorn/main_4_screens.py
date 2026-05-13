@@ -106,9 +106,9 @@ def draw_char(char, x_offset, r, g, b):
 
 def draw_ampm(is_pm):
     if not is_pm:
-        u.set_pixel(0, 6, 50, 50, 0)   # AM - yellow
+        u.set_pixel(0, 6, 150, 70, 0)   # AM - yellow
     else:
-        u.set_pixel(0, 6, 0, 0, 50)    # PM - blue
+        u.set_pixel(0, 6, 0, 0, 150)    # PM - blue
 
 def draw_letter(char, x_offset, r, g, b):
     if char not in LETTERS:
@@ -183,7 +183,7 @@ while True:
         h2 = '{:02d}'.format(hour_24)[1]
         m1 = '{:02d}'.format(minute)[0]
         m2 = '{:02d}'.format(minute)[1]
-        u.set_pixel(0, 0, 0, 50, 0)
+        u.set_pixel(0, 0, 0, 100, 0)
         draw_char(h1, 0, 50, 50, 50)
         draw_char(h2, 4, 50, 50, 50)
         draw_char(m1, 9, 50, 50, 50)
@@ -211,7 +211,7 @@ while True:
         mo2 = '{:02d}'.format(month)[1]
         d1 = '{:02d}'.format(day)[0]
         d2 = '{:02d}'.format(day)[1]
-        u.set_pixel(15, 0, 0, 50, 0)
+        u.set_pixel(15, 0, 0, 100, 0)
         draw_char(mo1, 0, 50, 50, 50)
         draw_char(mo2, 4, 50, 50, 50)
         draw_char(d1, 9, 50, 50, 50)
@@ -221,7 +221,7 @@ while True:
         # day of week
         dow = DAYS[now[6]]
         offsets = OFFSETS[dow]
-        u.set_pixel(15, 6, 0, 50, 0)
+        u.set_pixel(15, 6, 0, 100, 0)
         draw_letter(dow[0], offsets[0], 50, 50, 50)
         draw_letter(dow[1], offsets[1], 50, 50, 50)
         draw_letter(dow[2], offsets[2], 50, 50, 50)
