@@ -1,3 +1,13 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
+
 # kord_scraper.py
 # Fetches hourly KORD METAR and logs SLP and wind data for calibration comparison
 # Runs on Pi Zero 2W via cron, once per hour

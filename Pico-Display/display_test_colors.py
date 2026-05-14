@@ -1,3 +1,13 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
+
 from picographics import PicoGraphics, DISPLAY_PICO_DISPLAY
 
 display = PicoGraphics(display=DISPLAY_PICO_DISPLAY, rotate=0)

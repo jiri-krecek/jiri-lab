@@ -1,3 +1,13 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
+
 # Weather Display - Decker Pico
 # Receives sensor data from Weather Pico via UART1 on GP4 (RX) / GP5 (TX)
 # Displays temp, humidity, pressure on PIM543 display

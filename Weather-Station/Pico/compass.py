@@ -1,3 +1,13 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
+
 # compass.py
 # Wind vane voltage lookup for SparkFun SEN-15901
 # Base table calibrated to true North — 10K pull-up, 3.3V supply

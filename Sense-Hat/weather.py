@@ -1,3 +1,13 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
+
 import requests
 from sense_hat import SenseHat
 from weather_icons import icon_map # Assuming weather_icons.py is in the same directory and imports its icon_map based on OpenWeatherMap codes

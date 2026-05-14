@@ -1,6 +1,16 @@
+# ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was handcrafted. Logic, design, code
+#             modifications and testing done by the author.
+#             Tested on Raspberry SenseHAT 8x8 & Pi500
+# ─────────────────────────────────────────────────────────
+
 # weather_icons.py 
 # This module defines 8x8 pixel art icons for various weather conditions using RGB color tuples.
-
+# This is a companion module for weather.py, providing iconography
 
 # Define RGB colors 
 
