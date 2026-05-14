@@ -1,12 +1,25 @@
 # ─────────────────────────────────────────────────────────
+# Author    : Jiri Krecek
+# Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# License   : MIT - free to use, modify, and distribute
+#             with attribution
+# AI Notice : This code was co-developed with assistance of
+#             Claude AI (Anthropic). Logic, design, code
+#             modifications and testing done by the author.
+# ─────────────────────────────────────────────────────────
 # pico_diagnostics.py
+#
 # Comprehensive Pico hardware and network diagnostic test
-# Run on a bare Pico (W or non-W) with no sensors attached
-# Works on Pico 1st and 2nd gen
+# Run this on a bare Pico (W or non-W) with no sensors attached
+# Works on Pico 1st and 2nd gen with or without wifi - tested
 #
 # WiFi tests require Pico W with config.py on the Pico:
-#   WIFI_SSID     = "your_ssid"
-#   WIFI_PASSWORD = "your_password"
+#   WIFI_SSID      = "your_ssid"
+#   WIFI_PASSWORD  = "your_password"
+#   LOCAL_DNS_HOST = "your_hostname"
+#   LOCAL_DNS_IP   = "your_dns_ip_address"
+#   LOCAL_DNS_PORT = 53 - or whatever port you are using, 
+#                    if non-standard
 #
 # SECTIONS:
 #   SYSTEM    - unique ID, CPU clock, firmware, reset cause,
@@ -19,16 +32,14 @@
 #
 # All tests report PASS or FAIL independently
 # MicroPython v1.28.0+ on Raspberry Pi Pico (W or non-W)
-#
-# DISCLAIMER: Created with assistance of Claude AI (Anthropic)
 # ─────────────────────────────────────────────────────────
 
 try:
     import network
     import ntptime
     import urequests
-    from config import WIFI_SSID, WIFI_PASSWORD
     import socket
+    from config import WIFI_SSID, WIFI_PASSWORD, LOCAL_DNS_HOST, LOCAL_DNS_IP, LOCAL_DNS_PORT
     HAS_WIFI = True
 except ImportError:
     HAS_WIFI = False
@@ -144,18 +155,18 @@ if HAS_WIFI and wlan and wlan.isconnected():
     print(f"  MAC        : {mac_str}")
     print(f"  Signal     : {rssi} dBm")
 
-    print("  DNS resolve: pihole (10.0.0.101)...")
+    print(f"  DNS resolve: {LOCAL_DNS_HOST} ({LOCAL_DNS_IP})...")
     try:
-        resolved = socket.getaddrinfo("pihole", 53)
+        resolved = socket.getaddrinfo(LOCAL_DNS_HOST, LOCAL_DNS_PORT)
         print(f"  DNS result : {resolved[0][4][0]} PASS")
     except Exception as e:
         print(f"  DNS FAILED : {e}")
 
-    print("  Ping pihole: 10.0.0.101:53...")
+    print(f"  Ping {LOCAL_DNS_HOST}: {LOCAL_DNS_IP}:{LOCAL_DNS_PORT}...")
     try:
         s = socket.socket()
         s.settimeout(3)
-        s.connect(("10.0.0.101", 53))
+        s.connect((LOCAL_DNS_IP, LOCAL_DNS_PORT))
         s.close()
         print("  Ping result: PASS")
     except Exception as e:
@@ -229,8 +240,12 @@ except Exception as e:
 # ── SYSTEM RESILIENCE ────────────────────────────────────
 print("\n── SYSTEM RESILIENCE ───────────────────────────────")
 
+# Why this is here: with corrupted firmware you may have a situation where your code fails
+# but it fails silently without you ever knowing.
+# this proves that if we try an illogical operation, the failure results in an error = PASS
+# This proves that Pico's error handling actually works.
 try:
-    result = 1 / 0
+    result = 1 / 0              
 except ZeroDivisionError:
     print("  Exception  : PASS")
 
