@@ -1,9 +1,10 @@
 # ─────────────────────────────────────────────────────────
 # pico_diagnostics.py
-# Comprehensive Pico W hardware and network diagnostic test
-# Run on a bare Pico W with no sensors attached
+# Comprehensive Pico hardware and network diagnostic test
+# Run on a bare Pico (W or non-W) with no sensors attached
+# Works on Pico 1st and 2nd gen
 #
-# Requires config.py on saved the Pico itself with:
+# WiFi tests require Pico W with config.py on the Pico:
 #   WIFI_SSID     = "your_ssid"
 #   WIFI_PASSWORD = "your_password"
 #
@@ -17,42 +18,56 @@
 #   RESILIENCE - exception handling
 #
 # All tests report PASS or FAIL independently
-# MicroPython v1.28.0+ on Raspberry Pi Pico W
+# MicroPython v1.28.0+ on Raspberry Pi Pico (W or non-W)
+#
+# DISCLAIMER: Created with assistance of Claude AI (Anthropic)
 # ─────────────────────────────────────────────────────────
 
-import network
+try:
+    import network
+    import ntptime
+    import urequests
+    from config import WIFI_SSID, WIFI_PASSWORD
+    import socket
+    HAS_WIFI = True
+except ImportError:
+    HAS_WIFI = False
+
 import time
 import machine
 import os
 import gc
 import sys
-import socket
 import ubinascii
-import ntptime
-import urequests
-from config import WIFI_SSID, WIFI_PASSWORD
 
 # ── CONNECT ───────────────────────────────────────────────
-wlan = network.WLAN(network.STA_IF)
-wlan.active(True)
-print(f"Connecting to {WIFI_SSID}...")
-wlan.connect(WIFI_SSID, WIFI_PASSWORD)
+if HAS_WIFI:
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    print(f"Connecting to {WIFI_SSID}...")
+    wlan.connect(WIFI_SSID, WIFI_PASSWORD)
 
-timeout = 15
-start = time.time()
-while not wlan.isconnected():
-    elapsed = time.time() - start
-    if elapsed > timeout:
-        print("FAILED - connection timed out")
-        raise SystemExit
-    print(f"  waiting... {elapsed}s")
-    time.sleep(1)
+    timeout = 15
+    start = time.time()
+    while not wlan.isconnected():
+        elapsed = time.time() - start
+        if elapsed > timeout:
+            print("FAILED - connection timed out")
+            raise SystemExit
+        print(f"  waiting... {elapsed}s")
+        time.sleep(1)
 
-print(f"  Connected in {time.time() - start}s")
+    print(f"  Connected in {time.time() - start}s")
+
+else:
+    print("WiFi module not available - skipping network tests")
+    wlan = None
 
 # ── SYSTEM ────────────────────────────────────────────────
 print("\n── SYSTEM ──────────────────────────────────────────")
 
+print(f"  Board      : {sys.implementation._machine}")
+print(f"  WiFi       : {'Yes' if HAS_WIFI else 'No'}")
 uid = ubinascii.hexlify(machine.unique_id()).decode()
 print(f"  Unique ID  : {uid}")
 
@@ -105,68 +120,73 @@ rtc = machine.RTC()
 sys_time = rtc.datetime()
 print(f"  System RTC : {sys_time[0]}-{sys_time[1]:02d}-{sys_time[2]:02d} {sys_time[4]:02d}:{sys_time[5]:02d}:{sys_time[6]:02d} UTC")
 
-print("  Syncing NTP...")
-try:
-    ntptime.settime()
-    sys_time = rtc.datetime()
-    print(f"  NTP synced : {sys_time[0]}-{sys_time[1]:02d}-{sys_time[2]:02d} {sys_time[4]:02d}:{sys_time[5]:02d}:{sys_time[6]:02d} UTC")
-except Exception as e:
-    print(f"  NTP FAILED : {e}")
+if HAS_WIFI and wlan and wlan.isconnected():
+    print("  Syncing NTP...")
+    try:
+        ntptime.settime()
+        sys_time = rtc.datetime()
+        print(f"  NTP synced : {sys_time[0]}-{sys_time[1]:02d}-{sys_time[2]:02d} {sys_time[4]:02d}:{sys_time[5]:02d}:{sys_time[6]:02d} UTC")
+    except Exception as e:
+        print(f"  NTP FAILED : {e}")
+else:
+    print("  NTP sync   : Skipped - no WiFi")
 
 # ── NETWORK ──────────────────────────────────────────────
 print("\n── NETWORK ─────────────────────────────────────────")
+if HAS_WIFI and wlan and wlan.isconnected():
+    status = wlan.ifconfig()
+    mac = wlan.config('mac')
+    mac_str = ':'.join(f'{b:02x}' for b in mac)
+    rssi = wlan.status('rssi')
+    print(f"  IP address : {status[0]}")
+    print(f"  Gateway    : {status[2]}")
+    print(f"  DNS        : {status[3]}")
+    print(f"  MAC        : {mac_str}")
+    print(f"  Signal     : {rssi} dBm")
 
-status = wlan.ifconfig()
-mac = wlan.config('mac')
-mac_str = ':'.join(f'{b:02x}' for b in mac)
-rssi = wlan.status('rssi')
-print(f"  IP address : {status[0]}")
-print(f"  Gateway    : {status[2]}")
-print(f"  DNS        : {status[3]}")
-print(f"  MAC        : {mac_str}")
-print(f"  Signal     : {rssi} dBm")
+    print("  DNS resolve: pihole (10.0.0.101)...")
+    try:
+        resolved = socket.getaddrinfo("pihole", 53)
+        print(f"  DNS result : {resolved[0][4][0]} PASS")
+    except Exception as e:
+        print(f"  DNS FAILED : {e}")
 
-print("  DNS resolve: pihole (10.0.0.101)...")
-try:
-    resolved = socket.getaddrinfo("pihole", 53)
-    print(f"  DNS result : {resolved[0][4][0]} PASS")
-except Exception as e:
-    print(f"  DNS FAILED : {e}")
+    print("  Ping pihole: 10.0.0.101:53...")
+    try:
+        s = socket.socket()
+        s.settimeout(3)
+        s.connect(("10.0.0.101", 53))
+        s.close()
+        print("  Ping result: PASS")
+    except Exception as e:
+        print(f"  Ping FAILED: {e}")
 
-print("  Ping pihole: 10.0.0.101:53...")
-try:
-    s = socket.socket()
-    s.settimeout(3)
-    s.connect(("10.0.0.101", 53))
-    s.close()
-    print("  Ping result: PASS")
-except Exception as e:
-    print(f"  Ping FAILED: {e}")
+    print("  Testing HTTP GET...")
+    try:
+        r = urequests.get("http://httpbin.org/get")
+        print(f"  HTTP status: {r.status_code}")
+        r.close()
+        print("  GET test   : PASS")
+    except Exception as e:
+        print(f"  GET FAILED : {e}")
 
-print("  Testing HTTP GET...")
-try:
-    r = urequests.get("http://httpbin.org/get")
-    print(f"  HTTP status: {r.status_code}")
-    r.close()
-    print("  GET test   : PASS")
-except Exception as e:
-    print(f"  GET FAILED : {e}")
+    print("  Testing HTTPS GET...")
+    try:
+        r = urequests.get("https://httpbin.org/get")
+        print(f"  HTTPS status: {r.status_code}")
+        r.close()
+        print("  HTTPS test  : PASS")
+    except Exception as e:
+        print(f"  HTTPS FAILED: {e}")
 
-print("  Testing HTTPS GET...")
-try:
-    r = urequests.get("https://httpbin.org/get")
-    print(f"  HTTPS status: {r.status_code}")
-    r.close()
-    print("  HTTPS test  : PASS")
-except Exception as e:
-    print(f"  HTTPS FAILED: {e}")
-
-print("  DNS external: google.com...")
-try:
-    resolved = socket.getaddrinfo("google.com", 80)
-    print(f"  DNS result  : {resolved[0][4][0]} PASS")
-except Exception as e:
-    print(f"  DNS FAILED  : {e}")
+    print("  DNS external: google.com...")
+    try:
+        resolved = socket.getaddrinfo("google.com", 80)
+        print(f"  DNS result  : {resolved[0][4][0]} PASS")
+    except Exception as e:
+        print(f"  DNS FAILED  : {e}")
+else:
+    print("  Skipped - no WiFi")
 
 # ── HARDWARE BUSES ───────────────────────────────────────
 print("\n── HARDWARE BUSES ──────────────────────────────────")
@@ -216,7 +236,7 @@ except ZeroDivisionError:
 
 # ── DONE ─────────────────────────────────────────────────
 print("\n── COMPLETE ────────────────────────────────────────")
-print("  Disconnecting...")
-wlan.disconnect()
-wlan.active(False)
-print("  Done.")
+if HAS_WIFI and wlan:
+    print("  Disconnecting...")
+    wlan.disconnect()
+    wlan.active(False)
