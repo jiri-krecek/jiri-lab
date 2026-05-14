@@ -77,7 +77,7 @@ waiting... 2s
 waiting... 3s
 waiting... 4s
 waiting... 5s
-Connected in 1s
+Connected in 5s
 ── SYSTEM ──────────────────────────────────────────
 Board      : Raspberry Pi Pico W with RP2040
 WiFi       : Yes
