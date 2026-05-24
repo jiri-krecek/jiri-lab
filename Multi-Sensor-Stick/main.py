@@ -26,8 +26,13 @@ from machine import I2C, Pin
 import bme280
 import time
 
-# --- Metrics Calibration Against Primary Station ---
+
+# --- Variables For Calculations ---
 PRESSURE_OFFSET = -1.2  # hPa, calibrated against KORD
+ELEVATION = 210  # elevation of your sensor in meters above sea level (210 meters in my case)
+LAPSE_RATE = 0.0065      # temperature lapse rate, K/m
+GRAVITY_EXP = 5.257      # barometric formula exponent
+KELVIN_OFFSET = 273.15   # converts Celsius to Kelvin
 
 # --- I2C and sensor setup ---
 i2c = I2C(0, sda=Pin(0), scl=Pin(1))
@@ -78,8 +83,14 @@ while True:
     try:
         temp_c, pressure_pa, humidity = sensor.read_compensated_data()
         temp_f = (temp_c * 9 / 5) + 32
-        pressure_hpa = pressure_pa / 100
-        pressure_slp = (pressure_hpa * (1 - (0.0065 * 210) / (temp_c + 0.0065 * 210 + 273.15)) ** -5.257) + PRESSURE_OFFSET
+        pressure_hpa = pressure_pa / 100        # station pressure - actual pressure measured - not used for ordinary weather reporting
+        pressure_slp = (        # International Barometric Formula, a.k.a. Hypsometric Formula - converts station pressure to sea level pressure based on elevation
+            (pressure_hpa * 
+            (1 - (LAPSE_RATE * ELEVATION) / 
+            (temp_c + LAPSE_RATE * ELEVATION + KELVIN_OFFSET)) 
+            ** -GRAVITY_EXP) + 
+            PRESSURE_OFFSET
+        )
         update_display(temp_f, humidity, pressure_slp)
         print(f"T:{temp_f:.1f}F  RH:{humidity:.1f}%  P:{pressure_slp:.1f}hPa")
     except Exception as e:
