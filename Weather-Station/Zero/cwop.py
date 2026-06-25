@@ -25,6 +25,25 @@ from config import STATION_ID, LAT, LON, PASSCODE, DRY_RUN
 
 JOURNAL_FILE = "/mnt/data/weather/journal.csv"
 
+# --- Silence sentinel ---
+# Pico emits one line every 120s (main.py: 24 samples x 5s).
+# 360s = 3 full cycles. Phase-independent guarantee: at least two
+# FULL missed broadcasts in any alignment before we act. Trips
+# ~6-8 min after a real freeze. On trip: log + reopen serial port.
+SILENCE_TIMEOUT = 360
+
+# --- Local midnight helper ---
+# CWOP/MADIS spec (wxqa.com FAQ): the "P" field is rain since LOCAL
+# midnight, not UTC midnight. The weather node is set to
+# America/Chicago, so datetime.now().astimezone() returns local time
+# with the correct CDT/CST DST offset automatically, and .date() gives
+# today's LOCAL calendar date. NOTE: the APRS packet timestamp (the
+# zXXXXXX field in build_aprs_packet) stays Zulu/UTC on purpose - only
+# the rain-since-midnight rollover uses this local date.
+
+def local_date():
+    return datetime.now().astimezone().date()
+
 # --- APRS packet formatting ---
 
 def format_lat(lat):
@@ -69,6 +88,20 @@ def find_pico():
                 return port.device
         print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Pico not found, retrying in 10s...")
         time.sleep(10)
+
+# --- Serial (re)connect helper ---
+# Shared by startup, the SerialException path, and the silence
+# sentinel so all three reconnect identically instead of three
+# copies drifting apart.
+# Paired with the silence sentinel below: if the Pico stops sending
+# its 2-min lines and goes quiet past SILENCE_TIMEOUT (360s = 3 cycles),
+# the sentinel closes and reopens the port via this helper.
+
+def open_serial():
+    port = find_pico()
+    ser = serial.Serial(port, 115200, timeout=5)
+    print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Reading Pico serial stream...")
+    return ser
 
 # --- APRS submission ---
 
@@ -139,21 +172,45 @@ def main():
     rain_24h_bucket = []
     rain_midnight = 0.0
     last_submit = 0
-    last_midnight = datetime.now(timezone.utc).date()
-
-    port = find_pico()
+    # Track the LOCAL calendar date so rain_midnight resets at local
+    # midnight (00:00 CDT/CST), per CWOP spec - not at UTC midnight.
+    last_midnight = local_date()
 
     try:
-        ser = serial.Serial(port, 115200, timeout=5)
+        ser = open_serial()
     except Exception as e:
         print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Serial open failed: {e}")
         return
 
-    print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Reading Pico serial stream...")
+    # Silence sentinel: time of last successfully parsed line.
+    # Initialized to now so a slow first line doesn't false-trip.
+    last_valid_line = time.time()
 
     while True:
         try:
             line = ser.readline().decode("utf-8").strip()
+
+            # --- Silence sentinel check (runs every iteration) ---
+            # readline() returns "" every 5s when the Pico is quiet,
+            # so this is evaluated frequently even with no data.
+            # After SILENCE_TIMEOUT (360s = 3 missed 2-min cycles) of no
+            # valid line, log a "Pico silent" entry to the journal and
+            # reopen the serial port.
+            if time.time() - last_valid_line >= SILENCE_TIMEOUT:
+                silent_for = int(time.time() - last_valid_line)
+                print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Pico silent {silent_for}s - reopening serial")
+                write_journal("PICO_SILENT", f"no valid line for {silent_for}s; reopening serial")
+                try:
+                    ser.close()
+                except Exception:
+                    pass
+                time.sleep(5)
+                ser = open_serial()
+                # Reset so we don't re-trip every iteration while
+                # waiting for the Pico to come back so it doesn't spam our log with fake timeout entries.
+                # If it's still frozen, this will trip again in another SILENCE_TIMEOUT.
+                last_valid_line = time.time()
+                continue
 
             if not line or "," not in line:
                 continue
@@ -162,16 +219,20 @@ def main():
             if parsed is None:
                 continue
 
+            # Valid data arrived - reset the silence clock to zero again, to prevent fake positive Pico dropouts.
+            last_valid_line = time.time()
+
             write_journal("PICO_RAW", line.strip())
 
             temp_f, humidity, pressure, wind_sustained, wind_gust, wind_dir, rainfall = parsed
 
             now = time.time()
-            now_utc = datetime.now(timezone.utc)
 
-            if now_utc.date() > last_midnight:
+            # Rain-since-midnight rollover, checked against LOCAL date.
+            today_local = local_date()
+            if today_local > last_midnight:
                 rain_midnight = 0.0
-                last_midnight = now_utc.date()
+                last_midnight = today_local
 
             if rainfall > 0:
                 rain_1h_bucket.append((now, rainfall))
@@ -197,10 +258,13 @@ def main():
 
         except serial.SerialException:
             print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Serial lost, reconnecting...")
-            ser.close()
+            try:
+                ser.close()
+            except Exception:
+                pass
             time.sleep(5)
-            port = find_pico()
-            ser = serial.Serial(port, 115200, timeout=5)
+            ser = open_serial()
+            last_valid_line = time.time()
 
         except Exception as e:
             print(f"[{datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}] Error: {e}")
