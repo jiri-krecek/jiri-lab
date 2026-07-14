@@ -291,7 +291,7 @@ SILENCE_TIMEOUT = 360   # 3 full 2-minute Pico cycles
 
 ### Sensor stuck after physical handling
 
-Moving the sensor board into the new screen without unplugging it left the BMP390 reporting a frozen 863.93 hPa against an expected ~1020. The chip still answered on the I2C bus and still reported its correct chip ID, so nothing looked broken -- but the measurement registers were serving stale garbage.
+Moving the sensor board into the new screen without unplugging it left the BMP390 reporting a frozen 863.93 hPa against an expected ~1020. The chip still answered on the I2C bus and still reported its correct chip ID, so nothing looked broken -- but the measurement registers were serving stale garbage. TBH, if I were in the middle of 863 hPa barometric pressure, my eardrums would explode, blood boil and eyeballs popped out. 863 hPa is a pressure I'd probebaly expect inside an EF5 2-mile tornado wedge, not on a clear summer day with no wind. So, yes, there was some data issue indeed. 
 
 The tell was that the value never moved. Real atmospheric pressure never holds bit-identical for four hours.
 
