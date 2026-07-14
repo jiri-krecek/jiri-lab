@@ -115,7 +115,7 @@ Missing values are emitted as empty fields, not zeros. A failed temperature sens
 | --- | --- |
 | `main.py` | The loop. Auto-runs on boot. |
 | `compass.py` | Vane voltage to compass direction, dominant-direction logic |
-| `micropython_bmpxxx/` | Third-party BMP390 driver library |
+| `micropython_bmpxxx/` | Third-party BMP390 driver library - see credits for Brad Carlile |
 | `main-pico-backup.py` | Known-good rollback copy |
 
 The BMP390 needs the `micropython_bmpxxx` library copied onto the Pico's filesystem. It is not built into MicroPython. The HDC3022 needs no library at all -- it is driven with raw I2C register reads in `main.py`, which is about 10 lines and avoids a dependency:
@@ -374,6 +374,18 @@ Let it reset. The watchdog reset path is not a failure of the design, it is the 
 Fail safe, not fail clever. A corrupt state file loads as empty. A failed save logs and retries next cycle. Nothing in the recovery path is allowed to be the thing that takes the station down.
 
 Validate against a reference. A number that looks plausible is not the same as a number that is right. KORD is 20 miles away and staffed.
+
+---
+
+## Credits
+
+BMP390 driver: [MicroPython_BMPxxx](https://github.com/bradcar/MicroPython_BMPxxx)
+by Brad Carlile (bradcar). A single driver covering the BMP585, BMP581, BMP390,
+BMP280, and BME280 over I2C, tested on the Pico 2. It credits earlier work by
+Jose D. Montoya and Scott in its own README.
+
+Only the BMP390 needs a library here. The HDC3022 is driven with raw I2C register
+reads in `main.py`, which is about ten lines and avoids a dependency.
 
 ---
 
