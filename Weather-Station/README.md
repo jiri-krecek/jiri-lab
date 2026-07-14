@@ -295,9 +295,10 @@ Moving the sensor board into the new screen without unplugging it left the BMP39
 
 The tell was that the value never moved. Real atmospheric pressure never holds bit-identical for four hours.
 
-A reboot fixed it completely. Diagnosis order that mattered:
+A reboot fixed it completely - it was just stuck at a weird state -- how or why? I will never know. BUt a quick reboot thankfully addressed it and the sensor started reporting baro pressure within 1/2 hPa margin of error off my KORD reference airport.
+Diagnosis order that mattered:
 
-1. Is it plausible? 863.93 hPa is a several-thousand-foot reading, not a 689-foot one.
+1. Is it plausible? 863.93 hPa is a several-thousand-foot elevation reading, not a 689-foot one. Unless you are in the middle of an EF5 tornado and your eyballs pop out, eardrums burst and blod boils. 
 2. Is it *moving*? Frozen to two decimals across hours is a stuck state, not weather.
 3. Does the device still answer? `i2c.scan()` and a chip ID read confirmed the chip was alive, ruling out a broken connection or ESD damage.
 4. Does a clean init clear it? Yes. Damaged silicon does not un-damage itself on a power cycle, so this was a stuck state machine, most likely from a momentary power or bus interruption during handling.
