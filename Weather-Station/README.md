@@ -245,7 +245,7 @@ Compared against KORD at 16:00 CDT on 2026-07-14:
 | Temp (F) | 96.1 | 97.3 |
 | RH (%) | 39 | 50.3 |
 
-Pressure and temperature are within expected error. Humidity is not, and that is honest rather than broken: the HDC3022 has roughly a ±5% accuracy margin, and this station sits in a river valley still dissipating moisture a week after nearby flooding while KORD sits on well-drained flat ground. Humidity is the weakest link in this build.
+Pressure and temperature are within expected error. Humidity is not, and that is honest rather than broken: the HDC3022 has roughly a ±0.5% accuracy margin, and this station sits in a river valley still dissipating moisture a week after nearby flooding while KORD sits on well-drained flat ground. Humidity is the weakest link in this build.
 
 ---
 
