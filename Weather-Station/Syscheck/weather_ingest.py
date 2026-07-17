@@ -36,7 +36,7 @@ from config import WEATHER_HOST, DB_DSN
 
 JOURNAL_PATH = "/mnt/data/weather/journal.csv"
 SSH_TIMEOUT = 30                   # seconds before we give up on the pull
-DRY_RUN = True                     # True = parse and report, never write
+DRY_RUN = False                     # True = parse and report, never write
 
 
 # --- Pull ---
@@ -110,7 +110,8 @@ def parse_journal_line(line):
     # parts[5] is uv - hardcoded 0.0 placeholder on the Pico, discarded here
     wind_speed = to_float_or_none(parts[6])
     wind_gust  = to_float_or_none(parts[7])
-    wind_dir   = parts[8].strip() or None
+    wind_dir_raw = parts[8].strip()
+    wind_dir = wind_dir_raw if wind_dir_raw not in ("", "None") else None
     rain_in    = to_float_or_none(parts[9])
 
     return (ts, temp_f, humidity, pressure, wind_dir, wind_speed, wind_gust, rain_in)

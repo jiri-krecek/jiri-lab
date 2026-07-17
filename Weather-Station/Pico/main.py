@@ -59,6 +59,10 @@ ELEVATION_M = 210.0
 # To recalibrate: run testbmp390.py, compare SLP output to current KORD METAR SLP,
 # set offset = sensor SLP - KORD SLP.
 PRESSURE_OFFSET_HPA = 1.3
+# TEMP_OFFSET_F: this sensor is reading on averagy high by 2F, due to siting issues, so 
+# offset is applied to compensate for this station shortcoming and bring it in line with neighboring stations
+#remember that we are subtracting the offset! Not adding it to measured value
+TEMP_OFFSET_F = 2.0
 
 # --- Resilience tuning ---
 INIT_ATTEMPTS = 5       # boot-time init retries per sensor
@@ -232,6 +236,7 @@ while True:
         # decide how to handle them, rather than reporting bogus zeros.
         if hdc is not None:
             temp_c, temp_f, humidity = hdc
+            temp_f -= TEMP_OFFSET_F
             temp_str = f"{temp_f:.1f}"
             hum_str = f"{humidity:.1f}"
         else:
