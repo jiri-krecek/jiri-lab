@@ -1,6 +1,7 @@
 # ─────────────────────────────────────────────────────────
 # Author    : Jiri Krecek
 # Company   : Archer Dynamics LLC (goarcherdynamics.com)
+# Version.  : Archer Dynamics Wx 2.0 (Deployment version identifier SOFTWARE_VERSION is stored in config.py)
 # License   : MIT - free to use, modify, and distribute
 #             with attribution
 # AI Notice : This code was co-developed with assistance of
@@ -33,7 +34,7 @@ import serial.tools.list_ports # type: ignore
 import socket
 import time
 from datetime import datetime, timezone
-from config import STATION_ID, LAT, LON, PASSCODE, DRY_RUN
+from config import STATION_ID, LAT, LON, PASSCODE, DRY_RUN, SOFTWARE_VERSION
 
 # --- Journal file path ---
 
@@ -200,7 +201,7 @@ def submit_aprs(packet):
         greeting = s.recv(1024).decode("utf-8", errors="replace").strip()
         write_journal("APRS_GTNG", greeting)
 
-        login = f"user {STATION_ID} pass {PASSCODE} vers PiWeather 1.0\r\n"
+        login = f"user {STATION_ID} pass {PASSCODE} vers {SOFTWARE_VERSION}\r\n"
         s.sendall(login.encode())
         time.sleep(2)
 
